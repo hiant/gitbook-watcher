@@ -76,6 +76,7 @@ func main() {
 
 	log.Printf("Serving files from directory [%s]", root)
 	log.Printf("See stats at http://%s/stats", addr)
+	pwd, _ := filepath.Abs(".")
 
 	file2sum := map[string]string{}
 	done := make(chan bool)
@@ -86,19 +87,22 @@ func main() {
 				_, file := filepath.Split(event.Name)
 				if file[0] != '.' && !strings.EqualFold(file, "_book") {
 					if fileInfo, err := os.Stat(event.Name); err == nil {
-						var sum string
+						log.Println("event:", event)
 						if fileInfo.IsDir() {
-							sum = fmt.Sprint("%x", md5.Sum([]byte(event.Name)))
+							if event.Op&fsnotify.Create == fsnotify.Create {
+								err = addWatcher(watcher, ".")
+								check(err)
+							}
 						} else {
-							sum = md5file(event.Name)
-						}
-						oldSum, has := file2sum[event.Name]
-						if !has || !strings.EqualFold(oldSum, sum) {
-							log.Println("event:", event)
-							file2sum[event.Name] = sum
-							gitbookBuild(*path, options)
+							sum := md5file(event.Name)
+							oldSum, has := file2sum[event.Name]
+							if !has || !strings.EqualFold(oldSum, sum) {
+								file2sum[event.Name] = sum
+								gitbookBuild(*path, options)
+							}
 						}
 					}
+
 				}
 			case err := <-watcher.Errors:
 				panic(err)
@@ -106,11 +110,11 @@ func main() {
 		}
 	}()
 
-	pwd, _ := filepath.Abs(".")
 	err = watcher.Add(pwd)
 	check(err)
 	log.Printf("Directory [%v] was watched", pwd)
-	addWatcher(watcher, ".")
+	err = addWatcher(watcher, ".")
+	check(err)
 	<-done
 }
 
