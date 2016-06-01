@@ -87,7 +87,7 @@ func main() {
 				_, file := filepath.Split(event.Name)
 				if file[0] != '.' && !strings.EqualFold(file, "_book") {
 					if fileInfo, err := os.Stat(event.Name); err == nil {
-						log.Println("event:", event)
+						log.Println("Event:", event)
 						if fileInfo.IsDir() {
 							if event.Op&fsnotify.Create == fsnotify.Create {
 								err = addWatcher(watcher, ".")
@@ -98,7 +98,12 @@ func main() {
 							oldSum, has := file2sum[event.Name]
 							if !has || !strings.EqualFold(oldSum, sum) {
 								file2sum[event.Name] = sum
+								if strings.HasSuffix(event.Name, "SUMMARY.md") {
+									gitbookInit(*path)
+								}
 								gitbookBuild(*path, options)
+							} else {
+								log.Println("Nothing is changed")
 							}
 						}
 					}
@@ -145,6 +150,19 @@ func addWatcher(watcher *fsnotify.Watcher, path string) error {
 		}
 	}
 	return err
+}
+
+func gitbookInit(path string) {
+	build := exec.Command("gitbook", "init")
+	build.Dir = path
+	build.Stdout = os.Stdout
+	build.Stderr = os.Stderr
+	err := build.Run()
+	if err != nil {
+		log.Fatal(err)
+		panic(err)
+	}
+	log.Printf("Gitbook init success")
 }
 
 func gitbookBuild(path string, options *shutil.CopyTreeOptions) {
