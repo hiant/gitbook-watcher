@@ -66,7 +66,7 @@ func main() {
 		IgnoreDanglingSymlinks: false,
 		OnlySubDir:             true}
 
-	go gitbookBuild(*path, options)
+	gitbookBuild(*path, options)
 
 	go func() {
 		if err := fasthttp.ListenAndServe(addr, requestHandler); err != nil {
