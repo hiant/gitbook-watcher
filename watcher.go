@@ -85,7 +85,7 @@ func main() {
 			select {
 			case event := <-watcher.Events:
 				_, file := filepath.Split(event.Name)
-				if file[0] != '.' && !strings.EqualFold(file, "_book") {
+				if file[0] != '.' && !strings.EqualFold(file, "_book") && !strings.HasSuffix(file, ".pdf") {
 					if fileInfo, err := os.Stat(event.Name); err == nil {
 						log.Println("Event:", event)
 						if fileInfo.IsDir() {
